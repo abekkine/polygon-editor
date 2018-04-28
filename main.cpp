@@ -4,16 +4,34 @@
 #include <string.h>
 #include <GL/glut.h>
 
+#define MAX_VERTICES 16
 #define GRID_SIZE 10.0
-#define SCREEN_SIZE 500
+#define SCREEN_SIZE 1600
 
-double grid_x_ = 0.0;
-double grid_y_ = 0.0;
+struct grid_point {
+    double x;
+    double y;
+} cursor_on_grid;
+
+struct screen_point {
+    int x;
+    int y;
+} cursor_on_screen;
+
+struct shape_point {
+    shape_point() : valid(false) {}
+    bool valid;
+    grid_point point;
+};
+
+int shape_point_index = 0;
+shape_point shape[MAX_VERTICES];
 
 void render();
 void idle();
 void mouse(int button, int state, int x, int y);
 void motion(int x, int y);
+void keyboard(unsigned char key, int x, int y);
 
 void display(void) {
 
@@ -23,15 +41,6 @@ void display(void) {
 
 	glutSwapBuffers();
 	glutPostRedisplay();
-}
-
-void keyboard(unsigned char key, int x, int y) {
-
-	switch(key) {
-		case 27:
-			exit(0);
-			break;
-	}
 }
 
 void reshape(int width, int height) {
@@ -140,8 +149,8 @@ void render_panel() {
     glColor3f(1.0, 1.0, 1.0);
     char strLine1[256];
     char strLine2[256];
-    sprintf(strLine1, "%.2f", grid_x_);
-    sprintf(strLine2, "%.2f", grid_y_);
+    sprintf(strLine1, "%.2f", cursor_on_grid.x);
+    sprintf(strLine2, "%.2f", cursor_on_grid.y);
 
     glRasterPos2i(20, 30);
     for (int i=0; i<strlen(strLine1); ++i) glutBitmapCharacter(GLUT_BITMAP_8_BY_13, strLine1[i]);
@@ -150,12 +159,26 @@ void render_panel() {
     for (int i=0; i<strlen(strLine2); ++i) glutBitmapCharacter(GLUT_BITMAP_8_BY_13, strLine2[i]);
 }
 
+void render_shape() {
+
+    glLineWidth(3.0);
+    glColor3f(1.0, 1.0, 1.0);
+    glBegin(GL_LINE_LOOP);
+    for (int i=0; i<MAX_VERTICES; ++i) {
+        if (shape[i].valid) {
+            glVertex2d(shape[i].point.x, shape[i].point.y);
+        }
+    }
+    glEnd();
+}
+
 void render() {
 
     grid_mode();
 
     render_axes();
     render_grid();
+    render_shape();
 
     ui_mode();
 
@@ -166,13 +189,40 @@ void mouse(int button, int state, int x, int y) {
     // TODO
 }
 
+void calculate_cursor_on_grid() {
+
+    cursor_on_grid.x = 2.0 * GRID_SIZE * cursor_on_screen.x / SCREEN_SIZE - GRID_SIZE;
+    cursor_on_grid.y = -2.0 * GRID_SIZE * cursor_on_screen.y / SCREEN_SIZE + GRID_SIZE; 
+}
+
 void motion(int x, int y) {
 
-    grid_x_ = 2.0 * GRID_SIZE * x / SCREEN_SIZE - GRID_SIZE;
-    grid_y_ = -2.0 * GRID_SIZE * y / SCREEN_SIZE + GRID_SIZE; 
+    cursor_on_screen.x = x;
+    cursor_on_screen.y = y;
+
+    calculate_cursor_on_grid();
+}
+
+void add_point_to_current_shape() {
+
+    shape[shape_point_index].point = cursor_on_grid;
+    shape[shape_point_index].valid = true;
+    shape_point_index = (shape_point_index+1) % MAX_VERTICES;
+}
+
+void keyboard(unsigned char key, int x, int y) {
+
+	switch(key) {
+        case 'a':
+            add_point_to_current_shape(); break;
+		case 27:
+			exit(0);
+			break;
+	}
 }
 
 void idle() {
     // TODO
+    usleep(20000);
 }
 
