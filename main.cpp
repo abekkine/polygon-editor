@@ -503,6 +503,7 @@ void read_shape() {
     if (fLoad != 0) {
         fread(shape, sizeof(shape_point), MAX_SHAPE_POINTS, fLoad);
         fclose(fLoad);
+        update_center();
     }
 }
 
