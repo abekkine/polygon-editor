@@ -79,7 +79,7 @@ void text_print(int x, int y, const char* format, ...) {
     vsnprintf(text_buffer, MAX_TEXT_BUFFER, format, args);
     va_end(args);
 
-    void* font = GLUT_BITMAP_8_BY_13;
+    void* font = GLUT_BITMAP_9_BY_15;
 
     glRasterPos2i(x, y);
     for (unsigned int i=0; i<sizeof(text_buffer); ++i) {
@@ -210,11 +210,11 @@ void render_panel() {
     // Background color
     glColor4f(0.0, 0.0, 0.0, 0.8);
     glPushAttrib(GL_COLOR_BUFFER_BIT);
-    render_panel_frame(10, 10, 100, 50);
+    render_panel_frame(10, 10, 120, 50);
 
     glColor3f(1.0, 1.0, 1.0);
-    text_print(20, 30, "%.2f", cursor_on_grid.x);
-    text_print(20, 50, "%.2f", cursor_on_grid.y);
+    text_print(20, 30, "X: %+10.4f", cursor_on_grid.x);
+    text_print(20, 50, "Y: %+10.4f", cursor_on_grid.y);
 }
 
 void render_debug_panel() {
@@ -227,10 +227,14 @@ void render_debug_panel() {
     render_panel_frame(SCREEN_SIZE - 110, 10, 400, 100);
 
     glColor3f(1.0, 1.0, 1.0);
-    text_print(20, SCREEN_SIZE - 90, "%d", selected_point_index);
+    if (selected_point_index != -1) {
+        text_print(20, SCREEN_SIZE - 90, "Selected: %d", selected_point_index);
+    } else {
+        text_print(20, SCREEN_SIZE - 90, "Selected: none");
+    }
 
-    text_print(20, SCREEN_SIZE - 70, "%f", area_);
-    text_print(20, SCREEN_SIZE - 50, "%f %f", shape_center.x, shape_center.y);
+    text_print(20, SCREEN_SIZE - 70, "Area    : %10.4f", area_);
+    text_print(20, SCREEN_SIZE - 50, "Center  : %+10.4f %+10.4f", shape_center.x, shape_center.y);
 }
 
 void render_shape() {
