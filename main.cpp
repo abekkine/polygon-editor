@@ -38,6 +38,14 @@ shape_point shape[MAX_SHAPE_POINTS];
 int selected_point_index = -1;
 int move_point_index = -1;
 
+// 0 - none,
+// 1 - 1.00
+// 2 - 0.10
+// 3 - 0.01
+const uint8_t kSimplifyMax = 4;
+uint8_t simplify_mode_ = 0;
+shape_point simplified_shape[MAX_SHAPE_POINTS];
+
 double area_ = 0.0;
 grid_point shape_center;
 int final_shape_size = 0;
@@ -51,6 +59,8 @@ void keyboard(unsigned char key, int x, int y);
 void add_point_to_current_shape();
 void update_center();
 void move_shape_to_center();
+void preview_simplified_shape();
+void simplify_shape();
 
 #define MAX_TEXT_BUFFER 256
 char text_buffer[MAX_TEXT_BUFFER];
@@ -238,7 +248,21 @@ void render_shape() {
         }
     }
     glEnd();
+}
 
+void render_simplified_shape() {
+
+    if (simplify_mode_ == 0) return;
+
+    glLineWidth(1.0);
+    glColor3f(0.0, 1.0, 0.0);
+    glBegin(GL_LINE_LOOP);
+    for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
+        if (simplified_shape[i].valid) {
+            glVertex2d(simplified_shape[i].point.x, simplified_shape[i].point.y);
+        }
+    }
+    glEnd();
 }
 
 void render_shape_center() {
@@ -262,6 +286,7 @@ void render() {
     render_axes();
     render_grid();
     render_shape();
+    render_simplified_shape();
     render_shape_center();
 
     ui_mode();
@@ -349,6 +374,14 @@ void keyboard(unsigned char key, int x, int y) {
             // move shape center to origin.
             move_shape_to_center();
             break;
+        case 's':
+            simplify_mode_ = (simplify_mode_ + 1) % kSimplifyMax;
+        case 'S':
+            preview_simplified_shape();
+            break;
+        case 'a':
+            simplify_shape();
+            break;
 		case 27:
 			exit(0);
 			break;
@@ -358,6 +391,37 @@ void keyboard(unsigned char key, int x, int y) {
 void idle() {
     // TODO
     usleep(20000);
+}
+
+void preview_simplified_shape() {
+
+    if (simplify_mode_ == 0) return;
+
+    double s_factor;
+    switch (simplify_mode_) {
+    case 1: s_factor = 1.0; break;
+    case 2: s_factor = 10.0; break;
+    case 3: s_factor = 100.0; break;
+    default:
+        return;
+    }
+
+    for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
+        simplified_shape[i].valid = shape[i].valid;
+        simplified_shape[i].point.x = round(shape[i].point.x * s_factor) / s_factor;
+        simplified_shape[i].point.y = round(shape[i].point.y * s_factor) / s_factor;
+    }
+}
+
+void simplify_shape() {
+
+    simplify_mode_ = 0;
+
+    for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
+        shape[i] = simplified_shape[i];
+    }
+
+    update_center();
 }
 
 void update_center() {
