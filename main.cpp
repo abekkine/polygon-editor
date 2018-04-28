@@ -38,14 +38,20 @@ shape_point shape[MAX_SHAPE_POINTS];
 int selected_point_index = -1;
 int move_point_index = -1;
 
+double area_ = 0.0;
+grid_point shape_center;
+int final_shape_size = 0;
+grid_point final_shape[MAX_SHAPE_POINTS];
+
 void render();
 void idle();
 void mouse(int button, int state, int x, int y);
 void motion(int x, int y);
 void keyboard(unsigned char key, int x, int y);
 void add_point_to_current_shape();
+void update_center();
 
-#define MAX_TEXT_BUFFER 256 
+#define MAX_TEXT_BUFFER 256
 char text_buffer[MAX_TEXT_BUFFER];
 void text_print(int x, int y, const char* format, ...) {
     memset(text_buffer, 0, MAX_TEXT_BUFFER);
@@ -198,6 +204,9 @@ void render_debug_panel() {
 
     glColor3f(1.0, 1.0, 1.0);
     text_print(20, SCREEN_SIZE - 90, "%d", selected_point_index);
+
+    text_print(20, SCREEN_SIZE - 70, "%f", area_);
+    text_print(20, SCREEN_SIZE - 50, "%f %f", shape_center.x, shape_center.y);
 }
 
 void render_shape() {
@@ -231,6 +240,20 @@ void render_shape() {
 
 }
 
+void render_shape_center() {
+
+    if (final_shape_size < 3) return;
+
+    glLineWidth(1.0);
+    glColor3f(0.5, 0.5, 1.0);
+    glBegin(GL_LINES);
+        glVertex2d( shape_center.x - 1.0, shape_center.y);
+        glVertex2d( shape_center.x + 1.0, shape_center.y);
+        glVertex2d( shape_center.x, shape_center.y - 1.0);
+        glVertex2d( shape_center.x, shape_center.y + 1.0);
+    glEnd();
+}
+
 void render() {
 
     grid_mode();
@@ -238,6 +261,7 @@ void render() {
     render_axes();
     render_grid();
     render_shape();
+    render_shape_center();
 
     ui_mode();
 
@@ -264,6 +288,8 @@ void mouse(int button, int state, int x, int y) {
         if (state == GLUT_DOWN) {
             if (selected_point_index != -1) {
                 shape[selected_point_index].valid = false;
+
+                update_center();
             }
         }
     }
@@ -272,7 +298,7 @@ void mouse(int button, int state, int x, int y) {
 void calculate_cursor_on_grid() {
 
     cursor_on_grid.x = 2.0 * GRID_SIZE * cursor_on_screen.x / SCREEN_SIZE - GRID_SIZE;
-    cursor_on_grid.y = -2.0 * GRID_SIZE * cursor_on_screen.y / SCREEN_SIZE + GRID_SIZE; 
+    cursor_on_grid.y = -2.0 * GRID_SIZE * cursor_on_screen.y / SCREEN_SIZE + GRID_SIZE;
 }
 
 void find_selected_point() {
@@ -299,6 +325,8 @@ void motion(int x, int y) {
 
     if (move_point_index != -1) {
         shape[move_point_index].point = cursor_on_grid;
+
+        update_center();
     }
 }
 
@@ -307,6 +335,8 @@ void add_point_to_current_shape() {
     shape[shape_point_index].point = cursor_on_grid;
     shape[shape_point_index].valid = true;
     shape_point_index = (shape_point_index+1) % MAX_SHAPE_POINTS;
+
+    update_center();
 }
 
 void keyboard(unsigned char key, int x, int y) {
@@ -323,5 +353,34 @@ void keyboard(unsigned char key, int x, int y) {
 void idle() {
     // TODO
     usleep(20000);
+}
+
+void update_center() {
+
+    int final_shape_index = 0;
+    for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
+        if (shape[i].valid) {
+            final_shape[final_shape_index] = shape[i].point;
+            final_shape_index++;
+        }
+    }
+    final_shape_size = final_shape_index;
+
+    area_ = 0.0;
+    for (int i=0; i<final_shape_size; ++i) {
+        int j = (i+1) % final_shape_size;
+        area_ += 0.5 * (final_shape[i].x * final_shape[j].y - final_shape[j].x * final_shape[i].y);
+    }
+
+    shape_center.x = 0.0;
+    shape_center.y = 0.0;
+    for (int i=0; i<final_shape_size; ++i) {
+        int j = (i+1) % final_shape_size;
+        double common = (final_shape[i].x * final_shape[j].y - final_shape[j].x * final_shape[i].y);
+        shape_center.x += (final_shape[i].x + final_shape[j].x) * common;
+        shape_center.y += (final_shape[i].y + final_shape[j].y) * common;
+    }
+    shape_center.x /= 6.0 * area_;
+    shape_center.y /= 6.0 * area_;
 }
 
