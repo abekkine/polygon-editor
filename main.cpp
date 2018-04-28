@@ -469,6 +469,7 @@ void move_shape_to_center() {
 
 void write_shape() {
 
+    // Print shape
     puts("");
     bool once = true;
     for(int i=0; i<MAX_SHAPE_POINTS; ++i) {
@@ -483,5 +484,12 @@ void write_shape() {
         }
     }
     puts("}");
+
+    // Save shape to design.poly
+    FILE *fSave = fopen("design.poly", "wb");
+    if (fSave != 0) {
+        fwrite(shape, sizeof(shape_point), MAX_SHAPE_POINTS, fSave);
+        fclose(fSave);
+    }
 }
 
