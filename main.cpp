@@ -61,6 +61,7 @@ void update_center();
 void move_shape_to_center();
 void preview_simplified_shape();
 void simplify_shape();
+void write_shape();
 
 #define MAX_TEXT_BUFFER 256
 char text_buffer[MAX_TEXT_BUFFER];
@@ -382,6 +383,9 @@ void keyboard(unsigned char key, int x, int y) {
         case 'a':
             simplify_shape();
             break;
+        case 'w':
+            write_shape();
+            break;
 		case 27:
 			exit(0);
 			break;
@@ -461,5 +465,23 @@ void move_shape_to_center() {
     }
 
     update_center();
+}
+
+void write_shape() {
+
+    puts("");
+    bool once = true;
+    for(int i=0; i<MAX_SHAPE_POINTS; ++i) {
+        if (shape[i].valid) {
+            if (once) {
+                once = false;
+                printf("{");
+            } else {
+                puts(",");
+            }
+            printf("{%.3f, %.3f}", shape[i].point.x, shape[i].point.y);
+        }
+    }
+    puts("}");
 }
 
