@@ -9,6 +9,7 @@
 #define MAX_SHAPE_POINTS 16
 #define GRID_SIZE 10.0
 #define SCREEN_SIZE 1600
+#define MAX_SHAPES 16
 
 const uint8_t kMaxGridScaleIndex = 4;
 uint8_t grid_scale_index_ = 0;
@@ -39,8 +40,9 @@ struct shape_point {
     grid_point point;
 };
 
+int shape_index_ = 0;
 int shape_point_index = 0;
-shape_point shape[MAX_SHAPE_POINTS];
+shape_point shape[MAX_SHAPES][MAX_SHAPE_POINTS];
 int selected_point_index = -1;
 int move_point_index = -1;
 
@@ -240,11 +242,25 @@ void render_debug_panel() {
 void render_shape() {
 
     glLineWidth(3.0);
+
+    for (int k=0; k<MAX_SHAPES; ++k) {
+        if (k == shape_index_) continue;
+
+        glColor3f(0.5, 0.5, 0.5);
+        glBegin(GL_LINE_LOOP);
+        for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
+            if (shape[k][i].valid) {
+                glVertex2d(shape[k][i].point.x, shape[k][i].point.y);
+            }
+        }
+        glEnd();
+    }
+
     glColor3f(1.0, 1.0, 1.0);
     glBegin(GL_LINE_LOOP);
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
-        if (shape[i].valid) {
-            glVertex2d(shape[i].point.x, shape[i].point.y);
+        if (shape[shape_index_][i].valid) {
+            glVertex2d(shape[shape_index_][i].point.x, shape[shape_index_][i].point.y);
         }
     }
     glEnd();
@@ -252,7 +268,7 @@ void render_shape() {
     glPointSize(10.0);
     glBegin(GL_POINTS);
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
-        if (shape[i].valid) {
+        if (shape[shape_index_][i].valid) {
 
             if (selected_point_index == i) {
                 glColor3f(1.0, 0.0, 1.0);
@@ -261,7 +277,7 @@ void render_shape() {
                 glColor3f(0.0, 0.5, 1.0);
             }
 
-            glVertex2d(shape[i].point.x, shape[i].point.y);
+            glVertex2d(shape[shape_index_][i].point.x, shape[shape_index_][i].point.y);
         }
     }
     glEnd();
@@ -330,7 +346,7 @@ void mouse(int button, int state, int x, int y) {
     else if (button == GLUT_RIGHT_BUTTON) {
         if (state == GLUT_DOWN) {
             if (selected_point_index != -1) {
-                shape[selected_point_index].valid = false;
+                shape[shape_index_][selected_point_index].valid = false;
 
                 update_center();
             }
@@ -351,7 +367,7 @@ void find_selected_point() {
 
     selected_point_index = -1;
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
-        if (shape[i].valid == false) continue;
+        if (shape[shape_index_][i].valid == false) continue;
         double r2 = shape[i].point.distance_square(cursor_on_grid);
         if (r2 <= SELECT_DISTANCE_SQ) {
             selected_point_index = i;
@@ -370,7 +386,7 @@ void motion(int x, int y) {
     find_selected_point();
 
     if (move_point_index != -1) {
-        shape[move_point_index].point = cursor_on_grid;
+        shape[shape_index_][move_point_index].point = cursor_on_grid;
 
         update_center();
     }
@@ -378,8 +394,8 @@ void motion(int x, int y) {
 
 void add_point_to_current_shape() {
 
-    shape[shape_point_index].point = cursor_on_grid;
-    shape[shape_point_index].valid = true;
+    shape[shape_index_][shape_point_index].point = cursor_on_grid;
+    shape[shape_index_][shape_point_index].valid = true;
     shape_point_index = (shape_point_index+1) % MAX_SHAPE_POINTS;
 
     update_center();
@@ -411,6 +427,10 @@ void keyboard(unsigned char key, int x, int y) {
         case 'z':
             grid_scale_index_ = (grid_scale_index_ + 1) % kMaxGridScaleIndex;
             break;
+        case 'n':
+            shape_index_ = (shape_index_ + 1) % MAX_SHAPES;
+            update_center();
+            break;
 		case 27:
 			exit(0);
 			break;
@@ -436,9 +456,9 @@ void preview_simplified_shape() {
     }
 
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
-        simplified_shape[i].valid = shape[i].valid;
-        simplified_shape[i].point.x = round(shape[i].point.x * s_factor) / s_factor;
-        simplified_shape[i].point.y = round(shape[i].point.y * s_factor) / s_factor;
+        simplified_shape[i].valid = shape[shape_index_][i].valid;
+        simplified_shape[i].point.x = round(shape[shape_index_][i].point.x * s_factor) / s_factor;
+        simplified_shape[i].point.y = round(shape[shape_index_][i].point.y * s_factor) / s_factor;
     }
 }
 
@@ -447,7 +467,7 @@ void simplify_shape() {
     simplify_mode_ = 0;
 
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
-        shape[i] = simplified_shape[i];
+        shape[shape_index_][i] = simplified_shape[i];
     }
 
     update_center();
@@ -457,8 +477,8 @@ void update_center() {
 
     int final_shape_index = 0;
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
-        if (shape[i].valid) {
-            final_shape[final_shape_index] = shape[i].point;
+        if (shape[shape_index_][i].valid) {
+            final_shape[final_shape_index] = shape[shape_index_][i].point;
             final_shape_index++;
         }
     }
@@ -485,8 +505,8 @@ void update_center() {
 void move_shape_to_center() {
 
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
-        shape[i].point.x -= shape_center.x;
-        shape[i].point.y -= shape_center.y;
+        shape[shape_index_][i].point.x -= shape_center.x;
+        shape[shape_index_][i].point.y -= shape_center.y;
     }
 
     update_center();
@@ -498,31 +518,35 @@ void write_shape() {
     puts("");
     bool once = true;
     for(int i=0; i<MAX_SHAPE_POINTS; ++i) {
-        if (shape[i].valid) {
+        if (shape[shape_index_][i].valid) {
             if (once) {
                 once = false;
                 printf("{");
             } else {
                 puts(",");
             }
-            printf("{%.3f, %.3f}", shape[i].point.x, shape[i].point.y);
+            printf("{%.3f, %.3f}", shape[shape_index_][i].point.x, shape[shape_index_][i].point.y);
         }
     }
     puts("}");
 
     // Save shape to design.poly
-    FILE *fSave = fopen("design.poly", "wb");
+    char filename[32];
+    sprintf(filename, "design-%02d.poly", shape_index_);
+    FILE *fSave = fopen(filename, "wb");
     if (fSave != 0) {
-        fwrite(shape, sizeof(shape_point), MAX_SHAPE_POINTS, fSave);
+        fwrite(shape[shape_index_], sizeof(shape_point), MAX_SHAPE_POINTS, fSave);
         fclose(fSave);
     }
 }
 
 void read_shape() {
 
-    FILE *fLoad = fopen("design.poly", "rb");
+    char filename[32];
+    sprintf(filename, "design-%02d.poly", shape_index_);
+    FILE *fLoad = fopen(filename, "rb");
     if (fLoad != 0) {
-        fread(shape, sizeof(shape_point), MAX_SHAPE_POINTS, fLoad);
+        fread(shape[shape_index_], sizeof(shape_point), MAX_SHAPE_POINTS, fLoad);
         fclose(fLoad);
         update_center();
     }
