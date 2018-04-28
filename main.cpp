@@ -10,6 +10,12 @@
 #define GRID_SIZE 10.0
 #define SCREEN_SIZE 1600
 
+const uint8_t kMaxGridScaleIndex = 4;
+uint8_t grid_scale_index_ = 0;
+double grid_scale_factors_[kMaxGridScaleIndex] = {
+    1.0, 0.5, 0.2, 2.0
+};
+
 uint8_t debug_enable_ = 0;
 
 struct grid_point {
@@ -117,7 +123,12 @@ void init(void) {
 void grid_mode() {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(-GRID_SIZE, GRID_SIZE, -GRID_SIZE, GRID_SIZE, -1.0, 1.0);
+    glOrtho(
+        -grid_scale_factors_[grid_scale_index_] * GRID_SIZE,
+        +grid_scale_factors_[grid_scale_index_] * GRID_SIZE,
+        -grid_scale_factors_[grid_scale_index_] * GRID_SIZE,
+        +grid_scale_factors_[grid_scale_index_] * GRID_SIZE,
+        -1.0, 1.0);
     glMatrixMode(GL_MODELVIEW);
 }
 
@@ -327,6 +338,9 @@ void calculate_cursor_on_grid() {
 
     cursor_on_grid.x = 2.0 * GRID_SIZE * cursor_on_screen.x / SCREEN_SIZE - GRID_SIZE;
     cursor_on_grid.y = -2.0 * GRID_SIZE * cursor_on_screen.y / SCREEN_SIZE + GRID_SIZE;
+
+    cursor_on_grid.x *= grid_scale_factors_[grid_scale_index_];
+    cursor_on_grid.y *= grid_scale_factors_[grid_scale_index_];
 }
 
 void find_selected_point() {
@@ -389,6 +403,9 @@ void keyboard(unsigned char key, int x, int y) {
             break;
         case 'r':
             read_shape();
+            break;
+        case 'z':
+            grid_scale_index_ = (grid_scale_index_ + 1) % kMaxGridScaleIndex;
             break;
 		case 27:
 			exit(0);
