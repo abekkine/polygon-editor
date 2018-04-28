@@ -62,6 +62,7 @@ void move_shape_to_center();
 void preview_simplified_shape();
 void simplify_shape();
 void write_shape();
+void read_shape();
 
 #define MAX_TEXT_BUFFER 256
 char text_buffer[MAX_TEXT_BUFFER];
@@ -386,6 +387,9 @@ void keyboard(unsigned char key, int x, int y) {
         case 'w':
             write_shape();
             break;
+        case 'r':
+            read_shape();
+            break;
 		case 27:
 			exit(0);
 			break;
@@ -490,6 +494,15 @@ void write_shape() {
     if (fSave != 0) {
         fwrite(shape, sizeof(shape_point), MAX_SHAPE_POINTS, fSave);
         fclose(fSave);
+    }
+}
+
+void read_shape() {
+
+    FILE *fLoad = fopen("design.poly", "rb");
+    if (fLoad != 0) {
+        fread(shape, sizeof(shape_point), MAX_SHAPE_POINTS, fLoad);
+        fclose(fLoad);
     }
 }
 
