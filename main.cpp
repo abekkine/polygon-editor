@@ -368,8 +368,10 @@ void find_selected_point() {
     selected_point_index = -1;
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
         if (shape[shape_index_][i].valid == false) continue;
-        double r2 = shape[i].point.distance_square(cursor_on_grid);
-        if (r2 <= SELECT_DISTANCE_SQ) {
+        double r2 = shape[shape_index_][i].point.distance_square(cursor_on_grid);
+        double sc2 = grid_scale_factors_[grid_scale_index_];
+        sc2 *= sc2;
+        if (r2 <= SELECT_DISTANCE_SQ * sc2) {
             selected_point_index = i;
             break;
         }
