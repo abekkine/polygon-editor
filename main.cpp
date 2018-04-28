@@ -50,6 +50,7 @@ void motion(int x, int y);
 void keyboard(unsigned char key, int x, int y);
 void add_point_to_current_shape();
 void update_center();
+void move_shape_to_center();
 
 #define MAX_TEXT_BUFFER 256
 char text_buffer[MAX_TEXT_BUFFER];
@@ -344,6 +345,10 @@ void keyboard(unsigned char key, int x, int y) {
 	switch(key) {
         case 'd':
             debug_enable_ ^= 1; break;
+        case 'o':
+            // move shape center to origin.
+            move_shape_to_center();
+            break;
 		case 27:
 			exit(0);
 			break;
@@ -382,5 +387,15 @@ void update_center() {
     }
     shape_center.x /= 6.0 * area_;
     shape_center.y /= 6.0 * area_;
+}
+
+void move_shape_to_center() {
+
+    for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
+        shape[i].point.x -= shape_center.x;
+        shape[i].point.y -= shape_center.y;
+    }
+
+    update_center();
 }
 
