@@ -89,6 +89,7 @@ void flip_y_values();
 void paste_copied_shape(bool at_target);
 void move_shape_with_mouse();
 void rotate_shape_with_mouse();
+void rotate_shape_by(double angle);
 
 double start_angle_ = 0.0;
 double rotate_angle_ = 0.0;
@@ -595,6 +596,12 @@ void process_edit_keys(unsigned char key) {
         case 'r':
             read_shape();
             break;
+        case 't':
+            rotate_shape_by(-90.0);
+            break;
+        case 'T':
+            rotate_shape_by(90.0);
+            break;
         case 'm':
             move_and_rotate_mode_ ^= 1;
             break;
@@ -848,5 +855,23 @@ void rotate_shape_start_angle() {
     double dx = cursor_on_grid.x - shape_center[shape_index_].x;
     start_angle_ = atan2(dy, dx);
     rotate_angle_ = 0.0;
+}
+
+void rotate_shape_by(double angle) {
+    double r_angle = angle * M_PI / 180.0;
+    double dy = cursor_on_grid.y - shape_center[shape_index_].y;
+    double dx = cursor_on_grid.x - shape_center[shape_index_].x;
+
+    grid_point c = shape_center[shape_index_];
+    grid_point *p;
+    grid_point r1, r2;
+    for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
+        p = &shape[shape_index_][i].point;
+        r1.x = p->x - c.x;
+        r1.y = p->y - c.y;
+        r2 = rotate_point(r1, r_angle);
+        p->x = c.x + r2.x;
+        p->y = c.y + r2.y;
+    }
 }
 
