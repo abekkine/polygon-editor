@@ -90,6 +90,7 @@ void paste_copied_shape(bool at_target);
 void move_shape_with_mouse();
 void rotate_shape_with_mouse();
 void rotate_shape_by(double angle);
+void shift_first_vertice();
 
 double start_angle_ = 0.0;
 double rotate_angle_ = 0.0;
@@ -665,6 +666,8 @@ void process_edit_keys(unsigned char key) {
             shape_index_ = (shape_index_ + 1) % MAX_SHAPES;
             update_center();
             break;
+        case 'f':
+            shift_first_vertice(); break;
         case 'e':
             edit_mode_ ^= 1; break;
 		case 27:
@@ -922,5 +925,10 @@ void rotate_shape_by(double angle) {
         p->x = c.x + r2.x;
         p->y = c.y + r2.y;
     }
+}
+
+void shift_first_vertice() {
+
+    // TODO
 }
 
