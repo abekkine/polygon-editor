@@ -299,7 +299,7 @@ void render_debug_panel() {
         text_print(20, SCREEN_SIZE - 90, "Selected: none");
     }
 
-    text_print(20, SCREEN_SIZE - 70, "Area    : %10.4f", area_);
+    text_print(20, SCREEN_SIZE - 70, "Area    : %10.4f", area_[shape_index_]);
     text_print(20, SCREEN_SIZE - 50, "Center  : %+10.4f %+10.4f", shape_center[shape_index_].x, shape_center[shape_index_].y);
     text_print(20, SCREEN_SIZE - 30, "Rotation: %6.1f", rotate_angle_ * 180.0 / M_PI);
 }
@@ -393,13 +393,14 @@ void render_shape_center() {
 
     if (final_shape_size < 3) return;
 
+    const double c_size = 0.25;
     glLineWidth(1.0);
     glColor3f(0.5, 0.5, 1.0);
     glBegin(GL_LINES);
-        glVertex2d( shape_center[shape_index_].x - 1.0, shape_center[shape_index_].y);
-        glVertex2d( shape_center[shape_index_].x + 1.0, shape_center[shape_index_].y);
-        glVertex2d( shape_center[shape_index_].x, shape_center[shape_index_].y - 1.0);
-        glVertex2d( shape_center[shape_index_].x, shape_center[shape_index_].y + 1.0);
+        glVertex2d( shape_center[shape_index_].x - c_size, shape_center[shape_index_].y);
+        glVertex2d( shape_center[shape_index_].x + c_size, shape_center[shape_index_].y);
+        glVertex2d( shape_center[shape_index_].x, shape_center[shape_index_].y - c_size);
+        glVertex2d( shape_center[shape_index_].x, shape_center[shape_index_].y + c_size);
     glEnd();
 }
 
@@ -418,6 +419,34 @@ void render_rotation_guide() {
     }
 }
 
+void render_vertice_order() {
+
+    grid_point* c = &shape_center[shape_index_];
+
+    double a = 0.0;
+    double da = 0.0;
+    glLineWidth(2.0);
+    glColor3f(0.0, 0.7, 0.0);
+    glBegin(GL_LINE_STRIP);
+    for (a=0.25*M_PI; a<=0.75*M_PI; a+=0.1) {
+        glVertex2d(c->x + 0.2 * cos(a), c->y + 0.2 * sin(a));
+    }
+    glEnd();
+    if (area_[shape_index_] < 0.0) {
+        a = 0.25*M_PI;
+        da = 25.0 * M_PI / 180.0;
+    } else {
+        a = 0.75*M_PI;
+        da = -25.0 * M_PI / 180.0;
+    }
+
+    glBegin(GL_LINE_STRIP);
+        glVertex2d(c->x + 0.1 * cos(a+da), c->y + 0.1 * sin(a+da));
+        glVertex2d(c->x + 0.2 * cos(a), c->y + 0.2 * sin(a));
+        glVertex2d(c->x + 0.3 * cos(a+da), c->y + 0.3 * sin(a+da));
+    glEnd();
+}
+
 void render() {
 
     grid_mode();
@@ -428,6 +457,7 @@ void render() {
     render_simplified_shape();
     render_shape_center();
     render_rotation_guide();
+    render_vertice_order();
 
     ui_mode();
 
