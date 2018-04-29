@@ -356,16 +356,20 @@ void render_shape() {
 
     if (edit_mode_ == 0) return;
 
+    bool first_vertice = false;
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
         if (shape[shape_index_][i].valid) {
-
+            if (!first_vertice) {
+                first_vertice = true;
+                glPointSize(10.0);
+                glColor3f(0.0, 1.0, 1.0);
+            } else {
+                glPointSize(10.0);
+                glColor3f(0.0, 0.5, 1.0);
+            }
             if (selected_point_index == i) {
                 glPointSize(15.0);
                 glColor3f(1.0, 0.0, 1.0);
-            }
-            else {
-                glPointSize(10.0);
-                glColor3f(0.0, 0.5, 1.0);
             }
 
             glBegin(GL_POINTS);
