@@ -13,6 +13,7 @@
 
 uint8_t move_and_rotate_mode_ = 0;
 bool move_shape_enable_ = false;
+bool rotate_shape_enable_ = false;
 uint8_t edit_mode_ = 0;
 const int kDashMax = 8;
 int dash_index_ = 0;
@@ -82,10 +83,16 @@ void simplify_shape();
 void write_shape();
 void read_shape();
 void quit_application();
+void load_shapes();
 void flip_x_values();
 void flip_y_values();
 void paste_copied_shape(bool at_target);
 void move_shape_with_mouse();
+void rotate_shape_with_mouse();
+
+double start_angle_ = 0.0;
+double rotate_angle_ = 0.0;
+void rotate_shape_start_angle();
 
 #define MAX_TEXT_BUFFER 256
 char text_buffer[MAX_TEXT_BUFFER];
@@ -171,6 +178,8 @@ int main(int argc, char** argv) {
 	glutCreateWindow("Poly Designer");
 
 	init();
+
+    load_shapes();
 
 	glutMainLoop();
 
@@ -291,6 +300,7 @@ void render_debug_panel() {
 
     text_print(20, SCREEN_SIZE - 70, "Area    : %10.4f", area_);
     text_print(20, SCREEN_SIZE - 50, "Center  : %+10.4f %+10.4f", shape_center[shape_index_].x, shape_center[shape_index_].y);
+    text_print(20, SCREEN_SIZE - 30, "Rotation: %6.1f", rotate_angle_ * 180.0 / M_PI);
 }
 
 void render_shape() {
@@ -391,6 +401,21 @@ void render_shape_center() {
     glEnd();
 }
 
+void render_rotation_guide() {
+
+    if (move_and_rotate_mode_ != 0 && rotate_shape_enable_) {
+        glEnable(GL_LINE_STIPPLE);
+        glLineStipple(1, dash_patterns_[dash_index_]);
+        glLineWidth(1.0);
+        glColor3f(0.0, 1.0, 0.0);
+        glBegin(GL_LINES);
+        glVertex2d(cursor_on_grid.x, cursor_on_grid.y);
+        glVertex2d(shape_center[shape_index_].x, shape_center[shape_index_].y);
+        glEnd();
+        glDisable(GL_LINE_STIPPLE);
+    }
+}
+
 void render() {
 
     grid_mode();
@@ -400,6 +425,7 @@ void render() {
     render_shape();
     render_simplified_shape();
     render_shape_center();
+    render_rotation_guide();
 
     ui_mode();
 
@@ -417,6 +443,7 @@ void mouse(int button, int state, int x, int y) {
         if (state == GLUT_DOWN) {
             if (move_and_rotate_mode_) {
                 move_shape_enable_ = true;
+                rotate_shape_enable_ = false;
             }
             else {
                 if (selected_point_index == -1) {
@@ -432,6 +459,7 @@ void mouse(int button, int state, int x, int y) {
         else if (state == GLUT_UP) {
             if (move_and_rotate_mode_) {
                 move_shape_enable_ = false;
+                rotate_shape_enable_ = false;
                 move_and_rotate_mode_ = 0;
             }
             else {
@@ -441,10 +469,24 @@ void mouse(int button, int state, int x, int y) {
     }
     else if (button == GLUT_RIGHT_BUTTON) {
         if (state == GLUT_DOWN) {
-            if (selected_point_index != -1) {
-                shape[shape_index_][selected_point_index].valid = false;
-
-                update_center();
+            if (move_and_rotate_mode_) {
+                rotate_shape_start_angle();
+                rotate_shape_enable_ = true;
+                move_shape_enable_ = false;
+            }
+            else {
+                // Delete (disable) selected point, if any.
+                if (selected_point_index != -1) {
+                    shape[shape_index_][selected_point_index].valid = false;
+                    update_center();
+                }
+            }
+        }
+        else if (state == GLUT_UP) {
+            if (move_and_rotate_mode_) {
+                rotate_shape_enable_ = false;
+                move_shape_enable_ = false;
+                move_and_rotate_mode_ = 0;
             }
         }
     }
@@ -486,6 +528,8 @@ void motion(int x, int y) {
     if (move_and_rotate_mode_ != 0) {
         if (move_shape_enable_) {
             move_shape_with_mouse();
+        } else if (rotate_shape_enable_) {
+            rotate_shape_with_mouse();
         }
     } else {
 
@@ -710,6 +754,13 @@ void quit_application() {
     exit(0);
 }
 
+void load_shapes() {
+    for (int i=0; i<MAX_SHAPES; ++i) {
+        shape_index_ = i;
+        read_shape();
+    }
+}
+
 void flip_x_values() {
     grid_point* p;
     for (int i=0; i<MAX_SHAPES; ++i) {
@@ -758,5 +809,44 @@ void move_shape_with_mouse() {
         p->y = (p->y - pC.y) + cursor_on_grid.y;
     }
     update_center();
+}
+
+grid_point rotate_point(grid_point& r1, double angle) {
+
+    grid_point r2;
+
+    r2.x = r1.x * cos(angle) - r1.y * sin(angle);
+    r2.y = r1.x * sin(angle) + r1.y * cos(angle);
+
+    return r2;
+}
+
+void rotate_shape_with_mouse() {
+    double dy = cursor_on_grid.y - shape_center[shape_index_].y;
+    double dx = cursor_on_grid.x - shape_center[shape_index_].x;
+    rotate_angle_ = atan2(dy, dx);
+    double delta_angle = rotate_angle_ - start_angle_;
+
+    grid_point c = shape_center[shape_index_];
+    grid_point *p;
+    grid_point r1, r2;
+    for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
+        p = &shape[shape_index_][i].point;
+        r1.x = p->x - c.x;
+        r1.y = p->y - c.y;
+        r2 = rotate_point(r1, delta_angle);
+        p->x = c.x + r2.x;
+        p->y = c.y + r2.y;
+    }
+
+    start_angle_ = rotate_angle_;
+}
+
+void rotate_shape_start_angle() {
+
+    double dy = cursor_on_grid.y - shape_center[shape_index_].y;
+    double dx = cursor_on_grid.x - shape_center[shape_index_].x;
+    start_angle_ = atan2(dy, dx);
+    rotate_angle_ = 0.0;
 }
 
