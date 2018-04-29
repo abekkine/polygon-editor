@@ -219,6 +219,19 @@ void render_panel() {
     text_print(20, 50, "Y: %+10.4f", cursor_on_grid.y);
 }
 
+void render_vertice_position() {
+
+    if (selected_point_index == -1) return;
+
+    glColor4f(0.0, 0.8, 0.0, 0.6);
+    glPushAttrib(GL_COLOR_BUFFER_BIT);
+    render_panel_frame(10, (SCREEN_SIZE>>1) - 90, 180, 40);
+
+    grid_point* sp = &shape[shape_index_][selected_point_index].point;
+    glColor3f(0.8, 1.0, 0.8);
+    text_print((SCREEN_SIZE>>1) - 90, 30, "%+8.4f, %+8.4f", sp->x, sp->y);
+}
+
 void render_debug_panel() {
 
     if (debug_enable_ == 0) return;
@@ -326,6 +339,7 @@ void render() {
 
     render_panel();
     render_debug_panel();
+    render_vertice_position();
 }
 
 void mouse(int button, int state, int x, int y) {
