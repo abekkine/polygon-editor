@@ -240,6 +240,17 @@ void render_panel_frame(int top, int left, int width, int height) {
     glEnd();
 }
 
+void render_shape_index() {
+
+    // Background color
+    glColor4f(0.0, 1.0, 1.0, 0.3);
+    glPushAttrib(GL_COLOR_BUFFER_BIT);
+    render_panel_frame(SCREEN_SIZE - 50, SCREEN_SIZE - 110, 100, 40);
+
+    glColor3f(1.0, 1.0, 1.0);
+    text_print(SCREEN_SIZE - 100, SCREEN_SIZE - 25, "Shape #%2d", shape_index_);
+}
+
 void render_cursor_position() {
 
     // Background color
@@ -469,6 +480,7 @@ void render() {
     render_debug_panel();
     render_vertice_position();
     render_operation_mode();
+    render_shape_index();
 }
 
 void mouse(int button, int state, int x, int y) {
