@@ -71,6 +71,7 @@ void preview_simplified_shape();
 void simplify_shape();
 void write_shape();
 void read_shape();
+void quit_application();
 
 #define MAX_TEXT_BUFFER 256
 char text_buffer[MAX_TEXT_BUFFER];
@@ -448,7 +449,7 @@ void keyboard(unsigned char key, int x, int y) {
             update_center();
             break;
 		case 27:
-			exit(0);
+            quit_application();
 			break;
 	}
 }
@@ -566,5 +567,15 @@ void read_shape() {
         fclose(fLoad);
         update_center();
     }
+}
+
+void quit_application() {
+
+    for (int i=0; i<MAX_SHAPES; ++i) {
+        shape_index_ = i;
+        write_shape();
+    }
+
+    exit(0);
 }
 
