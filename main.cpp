@@ -56,8 +56,8 @@ const uint8_t kSimplifyMax = 4;
 uint8_t simplify_mode_ = 0;
 shape_point simplified_shape[MAX_SHAPE_POINTS];
 
-double area_ = 0.0;
-grid_point shape_center;
+double area_[MAX_SHAPES] = {0};
+grid_point shape_center[MAX_SHAPES];
 int final_shape_size = 0;
 grid_point final_shape[MAX_SHAPE_POINTS];
 
@@ -74,6 +74,8 @@ void simplify_shape();
 void write_shape();
 void read_shape();
 void quit_application();
+void flip_x_values();
+void flip_y_values();
 
 #define MAX_TEXT_BUFFER 256
 char text_buffer[MAX_TEXT_BUFFER];
@@ -278,7 +280,7 @@ void render_debug_panel() {
     }
 
     text_print(20, SCREEN_SIZE - 70, "Area    : %10.4f", area_);
-    text_print(20, SCREEN_SIZE - 50, "Center  : %+10.4f %+10.4f", shape_center.x, shape_center.y);
+    text_print(20, SCREEN_SIZE - 50, "Center  : %+10.4f %+10.4f", shape_center[shape_index_].x, shape_center[shape_index_].y);
 }
 
 void render_shape() {
@@ -349,10 +351,10 @@ void render_shape_center() {
     glLineWidth(1.0);
     glColor3f(0.5, 0.5, 1.0);
     glBegin(GL_LINES);
-        glVertex2d( shape_center.x - 1.0, shape_center.y);
-        glVertex2d( shape_center.x + 1.0, shape_center.y);
-        glVertex2d( shape_center.x, shape_center.y - 1.0);
-        glVertex2d( shape_center.x, shape_center.y + 1.0);
+        glVertex2d( shape_center[shape_index_].x - 1.0, shape_center[shape_index_].y);
+        glVertex2d( shape_center[shape_index_].x + 1.0, shape_center[shape_index_].y);
+        glVertex2d( shape_center[shape_index_].x, shape_center[shape_index_].y - 1.0);
+        glVertex2d( shape_center[shape_index_].x, shape_center[shape_index_].y + 1.0);
     glEnd();
 }
 
@@ -490,6 +492,10 @@ void process_edit_keys(unsigned char key) {
         case 'r':
             read_shape();
             break;
+        case 'h':
+            flip_x_values(); break;
+        case 'v':
+            flip_y_values(); break;
         case 'z':
             grid_scale_index_ = (grid_scale_index_ + 1) % kMaxGridScaleIndex;
             break;
@@ -562,29 +568,29 @@ void update_center() {
     }
     final_shape_size = final_shape_index;
 
-    area_ = 0.0;
+    area_[shape_index_] = 0.0;
     for (int i=0; i<final_shape_size; ++i) {
         int j = (i+1) % final_shape_size;
-        area_ += 0.5 * (final_shape[i].x * final_shape[j].y - final_shape[j].x * final_shape[i].y);
+        area_[shape_index_] += 0.5 * (final_shape[i].x * final_shape[j].y - final_shape[j].x * final_shape[i].y);
     }
 
-    shape_center.x = 0.0;
-    shape_center.y = 0.0;
+    shape_center[shape_index_].x = 0.0;
+    shape_center[shape_index_].y = 0.0;
     for (int i=0; i<final_shape_size; ++i) {
         int j = (i+1) % final_shape_size;
         double common = (final_shape[i].x * final_shape[j].y - final_shape[j].x * final_shape[i].y);
-        shape_center.x += (final_shape[i].x + final_shape[j].x) * common;
-        shape_center.y += (final_shape[i].y + final_shape[j].y) * common;
+        shape_center[shape_index_].x += (final_shape[i].x + final_shape[j].x) * common;
+        shape_center[shape_index_].y += (final_shape[i].y + final_shape[j].y) * common;
     }
-    shape_center.x /= 6.0 * area_;
-    shape_center.y /= 6.0 * area_;
+    shape_center[shape_index_].x /= 6.0 * area_[shape_index_];
+    shape_center[shape_index_].y /= 6.0 * area_[shape_index_];
 }
 
 void move_shape_to_center() {
 
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
-        shape[shape_index_][i].point.x -= shape_center.x;
-        shape[shape_index_][i].point.y -= shape_center.y;
+        shape[shape_index_][i].point.x -= shape_center[shape_index_].x;
+        shape[shape_index_][i].point.y -= shape_center[shape_index_].y;
     }
 
     update_center();
@@ -637,5 +643,22 @@ void quit_application() {
     }
 
     exit(0);
+}
+
+void flip_x_values() {
+    grid_point* p;
+    for (int i=0; i<MAX_SHAPES; ++i) {
+        p = &shape[shape_index_][i].point;
+        p->x = 2.0 * shape_center[shape_index_].x - p->x;
+    }
+}
+
+void flip_y_values() {
+    grid_point* p;
+    for (int i=0; i<MAX_SHAPES; ++i) {
+        p = &shape[shape_index_][i].point;
+        p->y = 2.0 * shape_center[shape_index_].y - p->y;
+    }
+
 }
 
