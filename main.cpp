@@ -74,6 +74,8 @@ void simplify_shape();
 void write_shape();
 void read_shape();
 void quit_application();
+void flip_x_values();
+void flip_y_values();
 
 #define MAX_TEXT_BUFFER 256
 char text_buffer[MAX_TEXT_BUFFER];
@@ -490,6 +492,10 @@ void process_edit_keys(unsigned char key) {
         case 'r':
             read_shape();
             break;
+        case 'v':
+            flip_x_values(); break;
+        case 'h':
+            flip_y_values(); break;
         case 'z':
             grid_scale_index_ = (grid_scale_index_ + 1) % kMaxGridScaleIndex;
             break;
@@ -637,5 +643,11 @@ void quit_application() {
     }
 
     exit(0);
+}
+
+void flip_x_values() {
+}
+
+void flip_y_values() {
 }
 
