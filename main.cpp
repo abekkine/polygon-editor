@@ -11,6 +11,8 @@
 #define SCREEN_SIZE 1600
 #define MAX_SHAPES 16
 
+uint8_t move_and_rotate_mode_ = 0;
+bool move_shape_enable_ = false;
 uint8_t edit_mode_ = 0;
 const int kDashMax = 8;
 int dash_index_ = 0;
@@ -83,6 +85,7 @@ void quit_application();
 void flip_x_values();
 void flip_y_values();
 void paste_copied_shape(bool at_target);
+void move_shape_with_mouse();
 
 #define MAX_TEXT_BUFFER 256
 char text_buffer[MAX_TEXT_BUFFER];
@@ -412,15 +415,28 @@ void mouse(int button, int state, int x, int y) {
 
     if (button == GLUT_LEFT_BUTTON) {
         if (state == GLUT_DOWN) {
-            if (selected_point_index == -1) {
-                add_point_to_current_shape();
+            if (move_and_rotate_mode_) {
+                move_shape_enable_ = true;
             }
             else {
-                move_point_index = selected_point_index;
+                if (selected_point_index == -1) {
+                    // Add new point, if no point is selected.
+                    add_point_to_current_shape();
+                }
+                else {
+                    // Move point, if one is selected.
+                    move_point_index = selected_point_index;
+                }
             }
         }
         else if (state == GLUT_UP) {
-            move_point_index = -1;
+            if (move_and_rotate_mode_) {
+                move_shape_enable_ = false;
+                move_and_rotate_mode_ = 0;
+            }
+            else {
+                move_point_index = -1;
+            }
         }
     }
     else if (button == GLUT_RIGHT_BUTTON) {
@@ -467,12 +483,19 @@ void motion(int x, int y) {
 
     calculate_cursor_on_grid();
 
-    find_selected_point();
+    if (move_and_rotate_mode_ != 0) {
+        if (move_shape_enable_) {
+            move_shape_with_mouse();
+        }
+    } else {
 
-    if (move_point_index != -1) {
-        shape[shape_index_][move_point_index].point = cursor_on_grid;
+        find_selected_point();
 
-        update_center();
+        if (move_point_index != -1) {
+            shape[shape_index_][move_point_index].point = cursor_on_grid;
+
+            update_center();
+        }
     }
 }
 
@@ -528,6 +551,9 @@ void process_edit_keys(unsigned char key) {
         case 'r':
             read_shape();
             break;
+        case 'm':
+            move_and_rotate_mode_ ^= 1;
+            break;
         case 'h':
             flip_x_values(); break;
         case 'v':
@@ -558,7 +584,6 @@ void keyboard(unsigned char key, int x, int y) {
 }
 
 void idle() {
-    // TODO
     dash_index_ = (dash_index_ + 1) % kDashMax;
     usleep(20000);
 }
@@ -585,13 +610,16 @@ void preview_simplified_shape() {
 
 void simplify_shape() {
 
-    simplify_mode_ = 0;
+    if (simplify_mode_ != 0) {
 
-    for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
-        shape[shape_index_][i] = simplified_shape[i];
+        simplify_mode_ = 0;
+
+        for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
+            shape[shape_index_][i] = simplified_shape[i];
+        }
+
+        update_center();
     }
-
-    update_center();
 }
 
 void update_center() {
@@ -719,3 +747,16 @@ void paste_copied_shape(bool at_target) {
 
     copy_shape_index_ = -1;
 }
+
+void move_shape_with_mouse() {
+
+    grid_point pC = shape_center[shape_index_];
+    grid_point *p;
+    for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
+        p = &shape[shape_index_][i].point;
+        p->x = (p->x - pC.x) + cursor_on_grid.x;
+        p->y = (p->y - pC.y) + cursor_on_grid.y;
+    }
+    update_center();
+}
+
