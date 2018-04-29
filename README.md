@@ -1,2 +1,2 @@
-# Simply Polygon Editor for 2D Physics Shapes
+# Simple Polygon Editor for 2D Physics Shapes
 
