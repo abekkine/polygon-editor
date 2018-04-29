@@ -12,6 +12,11 @@
 #define MAX_SHAPES 16
 
 uint8_t edit_mode_ = 0;
+const int kDashMax = 8;
+int dash_index_ = 0;
+uint16_t dash_patterns_[kDashMax] = {
+    0xf0f0, 0x7878, 0x3c3c, 0x1e1e, 0x0f0f, 0x8787, 0xc3c3, 0xe1e1
+};
 
 const uint8_t kMaxGridScaleIndex = 4;
 uint8_t grid_scale_index_ = 0;
@@ -42,6 +47,7 @@ struct shape_point {
     grid_point point;
 };
 
+int copy_shape_index_ = -1;
 int shape_index_ = 0;
 int shape_point_index = 0;
 shape_point shape[MAX_SHAPES][MAX_SHAPE_POINTS];
@@ -76,6 +82,7 @@ void read_shape();
 void quit_application();
 void flip_x_values();
 void flip_y_values();
+void paste_copied_shape(bool at_target);
 
 #define MAX_TEXT_BUFFER 256
 char text_buffer[MAX_TEXT_BUFFER];
@@ -290,6 +297,14 @@ void render_shape() {
     for (int k=0; k<MAX_SHAPES; ++k) {
         if (k == shape_index_) continue;
 
+        if (copy_shape_index_ == k) {
+            glEnable(GL_LINE_STIPPLE);
+            glLineStipple(1, dash_patterns_[dash_index_]);
+        }
+        else {
+            glDisable(GL_LINE_STIPPLE);
+        }
+
         glColor3f(0.5, 0.5, 0.5);
         glBegin(GL_LINE_LOOP);
         for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
@@ -298,6 +313,18 @@ void render_shape() {
             }
         }
         glEnd();
+
+        if (copy_shape_index_ == k) {
+            glDisable(GL_LINE_STIPPLE);
+        }
+    }
+
+    if (copy_shape_index_ == shape_index_) {
+        glEnable(GL_LINE_STIPPLE);
+        glLineStipple(1, dash_patterns_[dash_index_]);
+    }
+    else {
+        glDisable(GL_LINE_STIPPLE);
     }
 
     glColor3f(1.0, 1.0, 1.0);
@@ -308,6 +335,10 @@ void render_shape() {
         }
     }
     glEnd();
+
+    if (copy_shape_index_ == shape_index_) {
+         glDisable(GL_LINE_STIPPLE);
+    }
 
     if (edit_mode_ == 0) return;
 
@@ -328,7 +359,6 @@ void render_shape() {
     }
     glEnd();
 }
-
 void render_simplified_shape() {
 
     if (simplify_mode_ == 0) return;
@@ -486,6 +516,12 @@ void process_edit_keys(unsigned char key) {
         case 'a':
             simplify_shape();
             break;
+        case 'c':
+            copy_shape_index_ = shape_index_; break;
+        case 'p':
+            paste_copied_shape(true); break;
+        case 'P':
+            paste_copied_shape(false); break;
         case 'w':
             write_shape();
             break;
@@ -523,6 +559,7 @@ void keyboard(unsigned char key, int x, int y) {
 
 void idle() {
     // TODO
+    dash_index_ = (dash_index_ + 1) % kDashMax;
     usleep(20000);
 }
 
@@ -662,3 +699,23 @@ void flip_y_values() {
 
 }
 
+void paste_copied_shape(bool at_target) {
+
+    if (copy_shape_index_ == -1 || copy_shape_index_ == shape_index_) return;
+
+    double ox, oy;
+    if (at_target) {
+        ox = shape_center[shape_index_].x - shape_center[copy_shape_index_].x;
+        oy = shape_center[shape_index_].y - shape_center[copy_shape_index_].y;
+    } else {
+        ox = oy = 0.0;
+    }
+
+    for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
+        shape[shape_index_][i].point.x = shape[copy_shape_index_][i].point.x + ox;
+        shape[shape_index_][i].point.y = shape[copy_shape_index_][i].point.y + oy;
+        shape[shape_index_][i].valid = shape[copy_shape_index_][i].valid;
+    }
+
+    copy_shape_index_ = -1;
+}
