@@ -11,6 +11,8 @@
 #define SCREEN_SIZE 1600
 #define MAX_SHAPES 16
 
+uint8_t edit_mode_ = 0;
+
 const uint8_t kMaxGridScaleIndex = 4;
 uint8_t grid_scale_index_ = 0;
 double grid_scale_factors_[kMaxGridScaleIndex] = {
@@ -165,7 +167,11 @@ int main(int argc, char** argv) {
 
 void render_axes() {
     glLineWidth(2.0);
-    glColor3f(1.0, 0.0, 0.0);
+    if (edit_mode_ != 0) {
+        glColor3f(1.0, 0.0, 0.0);
+    } else {
+        glColor3f(0.0, 0.0, 1.0);
+    }
     glBegin(GL_LINES);
         glVertex2d(-GRID_SIZE, 0.0);
         glVertex2d( GRID_SIZE, 0.0);
@@ -177,7 +183,11 @@ void render_axes() {
 void render_grid() {
 
     glLineWidth(1.0);
-    glColor4f(1.0, 0.0, 0.0, 0.4);
+    if (edit_mode_ != 0) {
+        glColor4f(1.0, 0.0, 0.0, 0.4);
+    } else {
+        glColor4f(0.0, 0.0, 1.0, 0.4);
+    }
     glBegin(GL_LINES);
     for (double s=-GRID_SIZE; s<=GRID_SIZE; s+=1.0) {
         glVertex2d(-GRID_SIZE, s);
@@ -208,16 +218,34 @@ void render_panel_frame(int top, int left, int width, int height) {
     glEnd();
 }
 
-void render_panel() {
+void render_cursor_position() {
 
     // Background color
     glColor4f(0.0, 0.0, 0.0, 0.8);
     glPushAttrib(GL_COLOR_BUFFER_BIT);
-    render_panel_frame(10, 10, 120, 50);
+    render_panel_frame(10, 100, 140, 50);
 
     glColor3f(1.0, 1.0, 1.0);
-    text_print(20, 30, "X: %+10.4f", cursor_on_grid.x);
-    text_print(20, 50, "Y: %+10.4f", cursor_on_grid.y);
+    text_print(110, 30, "X: %+10.4f", cursor_on_grid.x);
+    text_print(110, 50, "Y: %+10.4f", cursor_on_grid.y);
+}
+
+void render_operation_mode() {
+    // Background color
+    if (edit_mode_ != 0) {
+        glColor4f(0.8, 0.0, 0.0, 0.8);
+    } else {
+        glColor4f(0.0, 0.0, 0.8, 0.8);
+    }
+    glPushAttrib(GL_COLOR_BUFFER_BIT);
+    render_panel_frame(10, 10, 80, 50);
+
+    glColor3f(1.0, 1.0, 1.0);
+    if (edit_mode_ != 0) {
+        text_print(30, 40, "EDIT");
+    } else {
+        text_print(30, 40, "VIEW");
+    }
 }
 
 void render_vertice_position() {
@@ -279,6 +307,8 @@ void render_shape() {
     }
     glEnd();
 
+    if (edit_mode_ == 0) return;
+
     glPointSize(10.0);
     glBegin(GL_POINTS);
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
@@ -338,12 +368,15 @@ void render() {
 
     ui_mode();
 
-    render_panel();
+    render_cursor_position();
     render_debug_panel();
     render_vertice_position();
+    render_operation_mode();
 }
 
 void mouse(int button, int state, int x, int y) {
+
+    if (edit_mode_ == 0) return;
 
     if (button == GLUT_LEFT_BUTTON) {
         if (state == GLUT_DOWN) {
@@ -395,6 +428,8 @@ void find_selected_point() {
 
 void motion(int x, int y) {
 
+    if (edit_mode_ == 0) return;
+
     cursor_on_screen.x = x;
     cursor_on_screen.y = y;
 
@@ -418,7 +453,21 @@ void add_point_to_current_shape() {
     update_center();
 }
 
-void keyboard(unsigned char key, int x, int y) {
+void process_view_keys(unsigned char key) {
+    switch(key) {
+        case 'd':
+            debug_enable_ ^= 1; break;
+        case 'z':
+            grid_scale_index_ = (grid_scale_index_ + 1) % kMaxGridScaleIndex;
+            break;
+        case 'e':
+            edit_mode_ ^= 1; break;
+        case 27:
+            quit_application(); break;
+    }
+}
+
+void process_edit_keys(unsigned char key) {
 
 	switch(key) {
         case 'd':
@@ -448,10 +497,22 @@ void keyboard(unsigned char key, int x, int y) {
             shape_index_ = (shape_index_ + 1) % MAX_SHAPES;
             update_center();
             break;
+        case 'e':
+            edit_mode_ ^= 1; break;
 		case 27:
             quit_application();
 			break;
 	}
+}
+
+void keyboard(unsigned char key, int x, int y) {
+
+    if (edit_mode_ != 0) {
+        process_edit_keys(key);
+    } else {
+        process_view_keys(key);
+    }
+
 }
 
 void idle() {
@@ -532,20 +593,19 @@ void move_shape_to_center() {
 void write_shape() {
 
     // Print shape
-    puts("");
     bool once = true;
     for(int i=0; i<MAX_SHAPE_POINTS; ++i) {
         if (shape[shape_index_][i].valid) {
             if (once) {
                 once = false;
-                printf("{");
+                printf("\n{");
             } else {
                 puts(",");
             }
             printf("{%.3f, %.3f}", shape[shape_index_][i].point.x, shape[shape_index_][i].point.y);
         }
     }
-    puts("}");
+    if (once == false) puts("}");
 
     // Save shape to design.poly
     char filename[32];
