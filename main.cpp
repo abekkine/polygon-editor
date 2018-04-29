@@ -356,22 +356,23 @@ void render_shape() {
 
     if (edit_mode_ == 0) return;
 
-    glPointSize(10.0);
-    glBegin(GL_POINTS);
     for (int i=0; i<MAX_SHAPE_POINTS; ++i) {
         if (shape[shape_index_][i].valid) {
 
             if (selected_point_index == i) {
+                glPointSize(15.0);
                 glColor3f(1.0, 0.0, 1.0);
             }
             else {
+                glPointSize(10.0);
                 glColor3f(0.0, 0.5, 1.0);
             }
 
+            glBegin(GL_POINTS);
             glVertex2d(shape[shape_index_][i].point.x, shape[shape_index_][i].point.y);
+            glEnd();
         }
     }
-    glEnd();
 }
 void render_simplified_shape() {
 
@@ -534,12 +535,14 @@ void motion(int x, int y) {
         }
     } else {
 
-        find_selected_point();
-
         if (move_point_index != -1) {
             shape[shape_index_][move_point_index].point = cursor_on_grid;
 
             update_center();
+        }
+        else {
+
+            find_selected_point();
         }
     }
 }
